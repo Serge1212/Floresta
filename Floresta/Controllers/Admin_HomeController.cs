@@ -30,26 +30,27 @@ namespace Floresta.Controllers
         public async Task<IActionResult> Index()
         {
 
-            if (_signInManager.IsSignedIn(User))
+            if (_signInManager.IsSignedIn(User)) //якщо користувач автентифікований
             {
-                var user = await _userManager.GetUserAsync(User);
-                if (user != null)
+                var user = await _userManager.GetUserAsync(User); //шукаємо його
+                if (user != null) //якщо користувач знайдений
                 {
                     var model = new ShowUserViewModel
                     {
                         Name = user.Name,
-                        Surname = user.UserSurname,
+                        Surname = user.UserSurname, //передаємо його дані в модель
                         Email = user.Email
                     };
 
-                    return View(model);
+                    return View(model); //повертаємо представлення
                 }
             }
-            return View();
+            return View(); //в іншому випадку повертаємо представлення без даних
         }
 
         public IActionResult GetQuestions()
         {
+            //повертає представлення з колекцією питань
             var questions = _context.Questions
                 .Include(c => c.User)
                 .Include(t => t.QuestionTopic);
@@ -58,13 +59,13 @@ namespace Floresta.Controllers
 
         public IActionResult GetQuestionTopics()
         {
+            //повертає представлення для отримання колекції тем питання
             return View();
         }
 
-
-
         public IActionResult AnswerQuestion()
-        {
+        { 
+            //повертає представлення для відправки відповіді на питання
             return View();
         }
   
@@ -76,55 +77,68 @@ namespace Floresta.Controllers
         [HttpPost]
         public async Task<IActionResult> AnswerQuestion(int id, SendEmailViewModel model)
         {
+            //отримуємо питання за айді
             Question question = _context.Questions.FirstOrDefault(x => id == x.Id);
+            //отримуємо користувача за айді
             var user = _context.Users.FirstOrDefault(x => question.UserId == x.Id);
             EmailService emailService = new EmailService();
-
+            //відправляємо відповідь електронною поштою
             await emailService.SendEmailAsync(user.Email, "Відповідь на питання",
                 $"Ваше питання було: \"{question.QuestionText}\"\n\nОфіційна відповідь на ваше питання:\n\n{model.Message}");
+            //ставимо мітку, що на дане питання є відповідь
             question.IsAnswered = true;
+            //оновлюємо дані питання
             _context.Questions.Update(question);
+            //зберігаємо зміни
             await _context.SaveChangesAsync();
+            //повертаємо на представлення з колекцією питань
             return RedirectToAction("GetQuestions");
         }
 
 
         public IActionResult Purchases()
-        {
+        {   //отримання колекції з потрібними даними
             var purchases = _context
                 .Payments
                 .Include(u => u.User)
                 .Include(m => m.Marker)
                 .Include(s => s.Seedling);
-
+            //повернення представлення з колекцією оплат
             return View(purchases);
         }
 
         
         [HttpPost]
+        //підтвердження покупки
         public async Task<IActionResult> Purchases(int? id)
         {
-            if (id != null)
-            {
+            if (id != null) //якщо айді передалось
+            {   //отримуємо дані покупки
                 var purchase = _context.Payments.FirstOrDefault(x => x.Id == id);
+                //отримуємо дані користувача
                 var user = _context.Users.FirstOrDefault(x => x.Id == purchase.UserId);
                 EmailService emailService = new EmailService();
-
+                //надсилаємо повідомлення електронною поштою
                 await emailService.SendEmailAsync(user.Email, "Вітання!!!",
                     $"Дорога(-ий) {user.Name} {user.UserSurname}, ваша оплата була успішно підтверджена!" +
-                    $"\nВаше бажання врятувати світ є більшим, ніж наша вдячність вам!\nСлідкуйте за нашими оновленнями, щоб бути в курсі всього!");
+                    $"\nВаше бажання врятувати світ є більшим, ніж наша вдячність вам!" +
+                    $"\nСлідкуйте за нашими оновленнями, щоб бути в курсі всього!");
+                //ставимо мітку, що оплата вдалася
                 purchase.IsPaymentSucceded = true;
+                //оновлюємо дані оплати
                 _context.Update(purchase);
+                //зберігаємо зміни
                 await _context.SaveChangesAsync();
                 return RedirectToAction("Purchases");
             }
             else
-            {
+            {   //якщо айді не передалося, то повертаємо 404
                 return NotFound();
             }
         }
 
         [HttpPost]
+        //скасувати оплату
         public async Task<IActionResult> DeclinePurchase(int? id)
         {
             if (id != null)
@@ -136,23 +150,30 @@ namespace Floresta.Controllers
 
                 EmailService emailService = new EmailService();
                 await emailService.SendEmailAsync(user.Email, "Статус Оплати",
-                    $"{user.Name} {user.UserSurname}, на жаль, ваша оплата не була успішною. Зв'яжіться з підтримкою Floresta для отримання більш детальної інформації.");
-                
+                    $"{user.Name} {user.UserSurname}, на жаль, ваша оплата не була успішною." +
+                    $" Зв'яжіться з підтримкою Floresta для отримання більш детальної інформації.");
+                //додаємо назад кількість саджанців
                 seedling.Amount += purchase.PurchasedAmount;
+                //оновлюємо дані саджанця
                 _context.Update(seedling);
 
+                //додаємо назад придбані місця
                 marker.PlantCount += purchase.PurchasedAmount;
+                //вказуємо, що мітка доступна для висадки саджанців
                 marker.isPlantingFinished = false;
+                //оновлюємо дані мітки
                 _context.Update(marker);
-                
+                //вказуємо, що оплата провалилася
                 purchase.IsPaymentFailed = true;
-                
+                //оновлюємо дані оплати
                 _context.Update(purchase);
+                //зберігаємо всі зміни
                 await _context.SaveChangesAsync();
+                //повертаємо на сторінку з колекцією оплат
                 return RedirectToAction("Purchases");
             }
             else
-            {
+            { //якщо айді немає - повертаємо 404
                 return NotFound();
             }
         }

@@ -23,13 +23,14 @@ namespace Floresta.Controllers
         public IActionResult Index()
         {
             var model = new HomeViewModel();
+            //передаємо теми питань в випадаючий список
             model.Topics = _context.QuestionTopics
                 .Select(x => new SelectListItem()
                 {
                     Value = x.Id.ToString(),
                     Text = x.Topic
                 });
-
+            //повертаємо представлення
             return View(model);
                
         }
@@ -44,20 +45,27 @@ namespace Floresta.Controllers
         [HttpPost]
         public async Task<IActionResult> AskQuestion(HomeViewModel model)
         {
+            //отримуємо юзера, який задав питання
             var user = await _userManager.GetUserAsync(User);
-            if (user != null)
+            if (user != null) //якщо такий юзер є
             {
+                //створюємо екземпляр питання
                 Question question = new Question
                 {
                     QuestionText = model.Question,
                     QuestionTopicId = model.TopicId
                 };
+                //додаємо питання
                 _context.Questions.Add(question);
+                //додаємо задане питання в дані юзера
                 user.Questions.Add(question);
+                //зберігаємо зміни
                 await _context.SaveChangesAsync();
+                //повертаємо юзера на головну сторінку
                 return RedirectToAction("Index", "Home");
             }
             else
+                //якщо юзера не знайдено, то повертаємо на сторінку логування
                 return RedirectToAction("Login", "Account");
         }
 

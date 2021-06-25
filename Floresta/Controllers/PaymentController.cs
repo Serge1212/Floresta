@@ -42,6 +42,7 @@ namespace Floresta.Controllers
         }
 
         [HttpPost]
+        //метод підтвердження покупки
         public async Task<IActionResult> Index(ConfirmPaymentViewModel model)
         {
             var user = await _userManager.GetUserAsync(User);

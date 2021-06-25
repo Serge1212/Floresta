@@ -24,19 +24,23 @@ namespace Floresta.Controllers
             _signInManager = signInManager;
         }
         public IActionResult Index()
-        {
+        {   //якщо користувач автентифікований
             if (_signInManager.IsSignedIn(User))
             {
+                //отримуємо колекцію саджанців, кількість яких більша 0
                 var seedlings = _context.Seedlings.Where(s => s.Amount > 0).ToList();
                 var model = new PaymentViewModel();
+                //додаємо в модель колекцію саджанців
                 model.Seedlings = seedlings;
+                //повертаємо представлення
                 return View(model);
             }
             else
-            {
+            {   //якщо користувач не автентифікований - переадресовуємо його на сторінку логінування
                 return RedirectToAction("Login", "Account");
             }
         }
+
         [Authorize(Roles = "admin")]
         public IActionResult Markers()
         {
@@ -97,9 +101,9 @@ namespace Floresta.Controllers
 
             return new JsonResult(new
             {
-                markers = markers,
-                seedlings = seedlings,
-                IsAdmin = IsAdmin
+                markers,
+                seedlings,
+                IsAdmin
             });
         }
     }

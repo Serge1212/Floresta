@@ -31,17 +31,16 @@ namespace Floresta
             services.AddScoped<IRepository<News>, NewsRepository>();
             services.AddScoped<IRepository<QuestionTopic>, QuestionTopicRepository>();
 
-            if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production")
+            if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
             {
                 services.AddDbContext<FlorestaDbContext>(options =>
-                   options.UseSqlServer(Configuration.GetConnectionString("RemoteConnection")));
+                   options.UseNpgsql(Configuration.GetConnectionString("DefaultConnection")));
             }
             else
             {
                 services.AddDbContext<FlorestaDbContext>(options =>
-                   options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+               options.UseNpgsql(Configuration.GetConnectionString("RemoteConnection")));
             }
-            services.BuildServiceProvider().GetService<FlorestaDbContext>().Database.Migrate();
 
             services.AddIdentity<User, IdentityRole>(options =>
             {
